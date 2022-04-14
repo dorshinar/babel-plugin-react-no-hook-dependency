@@ -1,0 +1,38 @@
+{
+  "name": "babel-plugin-react-no-hook-dependency",
+  "private": true,
+  "version": "0.0.0",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.24",
+    "typescript": "^4.5.4",
+    "vite": "^2.9.2",
+    "vitest": "^0.9.3"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.17.9",
+    "@babel/parser": "^7.17.9",
+    "@babel/traverse": "^7.17.9",
+    "@babel/types": "^7.17.0",
+    "@types/babel__generator": "^7.6.4",
+    "@types/babel__parser": "^7.1.1",
+    "@types/babel__traverse": "^7.17.0"
+  }
+}
