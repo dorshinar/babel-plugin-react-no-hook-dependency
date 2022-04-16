@@ -1,5 +1,6 @@
 import { assert, describe, test } from "vitest";
 import { addHooksDeps } from "./add-hooks-deps";
+import babel from "@babel/core";
 
 /**
  * A string template tag that removes padding from the left side of multi-line strings
@@ -119,7 +120,14 @@ const tests = [
 describe("add deps", () => {
   tests.forEach(({ input, output }, index) => {
     test(`add deps ${index}`, () => {
-      assert.equal(addHooksDeps(input), output);
+      const { code } = babel.transform(input, {
+        sourceType: "module",
+        // using the "@babel/plugin-syntax-jsx" plugin to preserve JSX
+        plugins: ["@babel/plugin-syntax-jsx", addHooksDeps],
+      }) ?? {
+        code: "",
+      };
+      assert.equal(code, output);
     });
   });
 });

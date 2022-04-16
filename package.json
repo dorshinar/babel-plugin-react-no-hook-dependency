@@ -21,18 +21,21 @@
     "coverage": "vitest run --coverage"
   },
   "devDependencies": {
+    "@types/babel__core": "^7.1.19",
+    "@types/babel__generator": "^7.6.4",
+    "@types/babel__parser": "^7.1.1",
+    "@types/babel__traverse": "^7.17.0",
     "@types/node": "^17.0.24",
     "typescript": "^4.5.4",
     "vite": "^2.9.2",
     "vitest": "^0.9.3"
   },
   "dependencies": {
+    "@babel/core": "^7.17.9",
     "@babel/generator": "^7.17.9",
     "@babel/parser": "^7.17.9",
+    "@babel/plugin-syntax-jsx": "^7.16.7",
     "@babel/traverse": "^7.17.9",
-    "@babel/types": "^7.17.0",
-    "@types/babel__generator": "^7.6.4",
-    "@types/babel__parser": "^7.1.1",
-    "@types/babel__traverse": "^7.17.0"
+    "@babel/types": "^7.17.0"
   }
 }
