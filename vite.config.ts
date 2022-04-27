@@ -1,3 +1,5 @@
+/// <reference types="vitest" />
+
 import { defineConfig } from "vite";
 import { readFileSync } from "fs";
 
@@ -13,5 +15,14 @@ export default defineConfig({
       fileName: (format) => `index.${format}.js`,
     },
     sourcemap: true,
+  },
+  test: {
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/cypress/**",
+      "**/.{idea,git,cache,output,temp}/**",
+      "**/examples/**",
+    ],
   },
 });

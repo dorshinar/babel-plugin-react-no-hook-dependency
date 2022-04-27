@@ -1,5 +1,5 @@
 import { assert, describe, test } from "vitest";
-import { addHooksDeps } from "./add-hooks-deps";
+import { addHooksDeps } from "../src/add-hooks-deps";
 import babel, { TransformOptions } from "@babel/core";
 
 type NormalizedString = string & { __normalized: true };

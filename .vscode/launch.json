@@ -11,7 +11,7 @@
       "autoAttachChildProcesses": true,
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
       "program": "${workspaceRoot}/node_modules/vitest/vitest.mjs",
-      "args": ["run", "base.test.ts"],
+      "args": ["run", "__tests__/base.test.ts"],
       "smartStep": true,
       "console": "integratedTerminal"
     }
