@@ -21,7 +21,10 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "format": "prettier . --check",
+    "format:write": "prettier . --write",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@babel/core": "^7.17.10",
