@@ -180,7 +180,7 @@ const generalTests: Test[] = [
           const b = 1;
           let a = b ?? state;
           return state;
-        }, []);
+        });
         return <></>;
       }`,
     output: normalizeIndent`
@@ -205,7 +205,7 @@ const generalTests: Test[] = [
           const b = moduleVar;
           let a = b ?? state;
           return state;
-        }, []);
+        });
         return <></>;
       }`,
     output: normalizeIndent`
@@ -233,7 +233,7 @@ const generalTests: Test[] = [
           let a = b ?? state;
           console.log(state);
           return state;
-        }, []);
+        });
         return <></>;
       }`,
     output: normalizeIndent`

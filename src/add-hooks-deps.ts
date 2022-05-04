@@ -14,16 +14,18 @@ export function addHooksDeps({ types: t }: { types: typeof types }): {
   return {
     visitor: {
       CallExpression: function (path) {
-        // If the number of arguments is greater than 1, it means a deps array was manually added.
-        // We don't want to override it.
-        if (path.node.arguments.length > 1) {
-          return;
-        }
-
         const callee = (path.node.callee as unknown as types.Identifier).name;
         if (relevantCallees.has(callee)) {
+          // If the number of arguments is greater than 1, it means a deps array was manually added.
+          // We don't want to override it.
+          if (path.node.arguments.length > 1) {
+            return;
+          }
+
           const names = new Set<string>();
           const variablesInitializedInScope = new Set<string>();
+
+          const scopeBindings = new Set(Object.keys(path.scope.bindings));
 
           path.traverse(
             {
@@ -92,7 +94,11 @@ export function addHooksDeps({ types: t }: { types: typeof types }): {
 
           const stringLiterals: Identifier[] = [];
           for (const name of names) {
-            stringLiterals.push(t.identifier(name));
+            // Get first identifier (before first ".") to make sure it is declared in the component scope.
+            const match = name.match(/[^.]+/);
+            if (match?.[0] && scopeBindings.has(match?.[0])) {
+              stringLiterals.push(t.identifier(name));
+            }
           }
           path.node.arguments.push(t.arrayExpression(stringLiterals));
           path.skip();
