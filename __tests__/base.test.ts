@@ -228,6 +228,7 @@ const generalTests: Test[] = [
 
       function App() {
         const [state, setState] = useState(0);
+        console.log(state);
         const toDisplay = useMemo(() => {
           const b = moduleVar;
           let a = b ?? state;
@@ -241,6 +242,7 @@ const generalTests: Test[] = [
 
       function App() {
         const [state, setState] = useState(0);
+        console.log(state);
         const toDisplay = useMemo(() => {
           const b = moduleVar;
           let a = b ?? state;
