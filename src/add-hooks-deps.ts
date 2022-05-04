@@ -120,30 +120,35 @@ const hookInvocationVisitor: Visitor<{
       return;
     }
 
-    const chainedMembers: string[] = [];
+    let chainedMembers: string[] = [];
     let continueTraversal = true;
-    path.traverse(memberExpressionInnerVisitor, {
+
+    const state = {
       chainedMembers,
       continueTraversal,
-    });
+    };
+    path.traverse(memberExpressionInnerVisitor, state);
+
+    continueTraversal = state.continueTraversal;
+    chainedMembers = state.chainedMembers;
 
     if (chainedMembers.length) {
       names.add(chainedMembers.join("."));
     }
   },
   CallExpression: (path, { names, variablesInitializedInScope, t }) => {
-    let chainedMembers: string[] = [];
-    let innerMostCallExpression: NodePath<types.CallExpression> | undefined;
-
-    const state = { chainedMembers, innerMostCallExpression };
+    const state: {
+      chainedMembers: string[];
+      innerMostCallExpression: NodePath<types.CallExpression> | undefined;
+    } = { chainedMembers: [], innerMostCallExpression: undefined };
 
     path.traverse(callExpressionVisitor, state);
 
-    chainedMembers = state.chainedMembers;
-    innerMostCallExpression = state.innerMostCallExpression;
+    let chainedMembers = state.chainedMembers;
+    const innerMostCallExpression = state.innerMostCallExpression;
 
     // If we have found an inner Call Expression, we traverse it to find all identifiers.
-    if (t.isCallExpression(innerMostCallExpression!)) {
+    if (t.isCallExpression(innerMostCallExpression)) {
       chainedMembers = [];
       innerMostCallExpression.traverse(innerMostCallExpressionVisitor, {
         chainedMembers,
