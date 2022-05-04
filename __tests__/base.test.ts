@@ -25,7 +25,7 @@ interface Test {
   only?: true;
 }
 
-const useMemoTests: Test[] = [
+const generalTests: Test[] = [
   {
     title: "basic variable",
     input: normalizeIndent`
@@ -41,7 +41,7 @@ const useMemoTests: Test[] = [
         const [state, setState] = useState(0);
         const toDisplay = useMemo(() => {
           return state;
-        }, ["state"]);
+        }, [state]);
         return <></>;
       }`,
   },
@@ -62,7 +62,7 @@ const useMemoTests: Test[] = [
         const toDisplay = useMemo(() => {
           let a = state.foo;
           return a;
-        }, ["state.foo"]);
+        }, [state.foo]);
         return <></>;
       }`,
   },
@@ -83,7 +83,7 @@ const useMemoTests: Test[] = [
         const toDisplay = useMemo(() => {
           let a = state.foo;
           return state;
-        }, ["state.foo", "state"]);
+        }, [state.foo, state]);
         return <></>;
       }`,
   },
@@ -104,7 +104,7 @@ const useMemoTests: Test[] = [
         const toDisplay = useMemo(() => {
           let a = state.foo.bar.baz;
           return a;
-        }, ["state.foo.bar.baz"]);
+        }, [state.foo.bar.baz]);
         return <></>;
       }`,
   },
@@ -125,7 +125,7 @@ const useMemoTests: Test[] = [
         const toDisplay = useMemo(() => {
           let a = state.foo();
           return a;
-        }, ["state"]);
+        }, [state]);
         return <></>;
       }`,
   },
@@ -146,7 +146,7 @@ const useMemoTests: Test[] = [
         const toDisplay = useMemo(() => {
           let a = state.foo().bar;
           return state;
-        }, ["state"]);
+        }, [state]);
         return <></>;
       }`,
   },
@@ -167,7 +167,7 @@ const useMemoTests: Test[] = [
         const toDisplay = useMemo(() => {
           let a = state.foo.bar().baz.qux().one.two.three();
           return state;
-        }, ["state.foo", "state"]);
+        }, [state.foo, state]);
         return <></>;
       }`,
   },
@@ -180,7 +180,7 @@ const useMemoTests: Test[] = [
           const b = 1;
           let a = b ?? state;
           return state;
-        }, ["state"]);
+        }, []);
         return <></>;
       }`,
     output: normalizeIndent`
@@ -190,7 +190,7 @@ const useMemoTests: Test[] = [
           const b = 1;
           let a = b ?? state;
           return state;
-        }, ["state"]);
+        }, [state]);
         return <></>;
       }`,
   },
@@ -205,7 +205,7 @@ const useMemoTests: Test[] = [
           const b = moduleVar;
           let a = b ?? state;
           return state;
-        }, ["state"]);
+        }, []);
         return <></>;
       }`,
     output: normalizeIndent`
@@ -217,11 +217,39 @@ const useMemoTests: Test[] = [
           const b = moduleVar;
           let a = b ?? state;
           return state;
-        }, ["state"]);
+        }, [state]);
         return <></>;
       }`,
   },
+  {
+    title: "global variable is ignored",
+    input: normalizeIndent`
+      const moduleVar = 3;
 
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          const b = moduleVar;
+          let a = b ?? state;
+          console.log(state);
+          return state;
+        }, []);
+        return <></>;
+      }`,
+    output: normalizeIndent`
+      const moduleVar = 3;
+
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          const b = moduleVar;
+          let a = b ?? state;
+          console.log(state);
+          return state;
+        }, [state]);
+        return <></>;
+      }`,
+  },
   {
     title: "basic variable as function parameter",
     input: normalizeIndent`
@@ -240,7 +268,7 @@ const useMemoTests: Test[] = [
           let a = () => {};
 
           return a(state);
-        }, ["state"]);
+        }, [state]);
         return <></>;
       }`,
   },
@@ -264,7 +292,7 @@ const useMemoTests: Test[] = [
 
           let a = b(state.foo);
           return a;
-        }, ["state.foo"]);
+        }, [state.foo]);
         return <></>;
       }`,
   },
@@ -288,7 +316,7 @@ const useMemoTests: Test[] = [
 
           let a = b(state.foo);
           return state;
-        }, ["state.foo", "state"]);
+        }, [state.foo, state]);
         return <></>;
       }`,
   },
@@ -313,7 +341,7 @@ const useMemoTests: Test[] = [
 
           let a = b(state.foo.bar.baz);
           return a;
-        }, ["state.foo.bar.baz"]);
+        }, [state.foo.bar.baz]);
         return <></>;
       }`,
   },
@@ -338,7 +366,7 @@ const useMemoTests: Test[] = [
 
           let a = b(state.foo());
           return a;
-        }, ["state"]);
+        }, [state]);
         return <></>;
       }`,
   },
@@ -364,7 +392,7 @@ const useMemoTests: Test[] = [
 
           let a = b(state.foo().bar);
           return state;
-        }, ["state"]);
+        }, [state]);
         return <></>;
       }`,
   },
@@ -389,12 +417,12 @@ const useMemoTests: Test[] = [
 
           let a = b(state.foo.bar().baz.qux().one.two.three());
           return state;
-        }, ["state.foo", "state"]);
+        }, [state.foo, state]);
         return <></>;
       }`,
   },
 ];
-const useEffectTests: Test[] = [
+const useMemoTests: Test[] = [
   {
     title: "sanity",
     input: normalizeIndent`
@@ -410,7 +438,28 @@ const useEffectTests: Test[] = [
       const [state, setState] = useState(0);
       const toDisplay = useMemo(() => {
         return state;
-      }, ["state"]);
+      }, [state]);
+      return <></>;
+    }`,
+  },
+];
+const useEffectTests: Test[] = [
+  {
+    title: "sanity",
+    input: normalizeIndent`
+    function App() {
+      const [state, setState] = useState(0);
+      const toDisplay = useEffect(() => {
+        return state;
+      });
+      return <></>;
+    }`,
+    output: normalizeIndent`
+    function App() {
+      const [state, setState] = useState(0);
+      const toDisplay = useEffect(() => {
+        return state;
+      }, [state]);
       return <></>;
     }`,
   },
@@ -431,7 +480,7 @@ const useCallbackTests: Test[] = [
       const [state, setState] = useState(0);
       const toDisplay = useCallback(() => {
         return state;
-      }, ["state"]);
+      }, [state]);
       return <></>;
     }`,
   },
@@ -459,6 +508,11 @@ function runTest({ input, output, only, title }: Test) {
 }
 
 describe("add deps", () => {
+  describe("general", () => {
+    generalTests.forEach((testData) => {
+      runTest(testData);
+    });
+  });
   describe("useMemo", () => {
     useMemoTests.forEach((testData) => {
       runTest(testData);

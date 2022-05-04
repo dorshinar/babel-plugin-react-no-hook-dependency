@@ -1,11 +1,6 @@
-import traverse, {
-  NodePath,
-  TraverseOptions,
-  VisitNode,
-  Visitor,
-} from "@babel/traverse";
+import { NodePath, TraverseOptions, VisitNode, Visitor } from "@babel/traverse";
 import * as types from "@babel/types";
-import { StringLiteral } from "@babel/types";
+import { Identifier } from "@babel/types";
 
 const relevantCallees = new Set(["useMemo", "useCallback", "useEffect"]);
 const disallowedIdentifierParents = new Set([
@@ -30,8 +25,7 @@ export function addHooksDeps({ types: t }: { types: typeof types }): {
           const names = new Set<string>();
           const variablesInitializedInScope = new Set<string>();
 
-          traverse(
-            path.node,
+          path.traverse(
             {
               Identifier: function (path2) {
                 // We skip certain parent types because in this visitor we only care about "pure" identifiers.
@@ -53,35 +47,25 @@ export function addHooksDeps({ types: t }: { types: typeof types }): {
                 let chainedMembers: string[] = [];
                 let innerMostCallExpression: NodePath<types.CallExpression>;
 
-                traverse(
-                  path2.node,
-                  {
-                    Identifier: function (path3) {
-                      // When we are not dealing with nested calls we should chain the identifiers found
-                      chainedMembers.push(path3.node.name);
-                    },
-                    CallExpression: function (path3) {
-                      // We store the inner most Call Expression so we can traverse it later
-                      innerMostCallExpression = path3;
-                    },
+                path2.traverse({
+                  Identifier: function (path3) {
+                    // When we are not dealing with nested calls we should chain the identifiers found
+                    chainedMembers.push(path3.node.name);
                   },
-                  path2.scope,
-                  path2
-                );
+                  CallExpression: function (path3) {
+                    // We store the inner most Call Expression so we can traverse it later
+                    innerMostCallExpression = path3;
+                  },
+                });
 
                 // If we have found an inner Call Expression, we traverse it to find all identifiers.
                 if (t.isCallExpression(innerMostCallExpression!)) {
                   chainedMembers = [];
-                  traverse(
-                    innerMostCallExpression.node,
-                    {
-                      Identifier: function (path3) {
-                        chainedMembers.push(path3.node.name);
-                      },
+                  innerMostCallExpression.traverse({
+                    Identifier: function (path3) {
+                      chainedMembers.push(path3.node.name);
                     },
-                    innerMostCallExpression.scope,
-                    innerMostCallExpression
-                  );
+                  });
                 }
 
                 if (chainedMembers.length) {
@@ -103,13 +87,12 @@ export function addHooksDeps({ types: t }: { types: typeof types }): {
                 }
               },
             },
-            path.scope,
             { names }
           );
 
-          const stringLiterals: StringLiteral[] = [];
+          const stringLiterals: Identifier[] = [];
           for (const name of names) {
-            stringLiterals.push(t.stringLiteral(name));
+            stringLiterals.push(t.identifier(name));
           }
           path.node.arguments.push(t.arrayExpression(stringLiterals));
           path.skip();
@@ -138,7 +121,7 @@ const extractMemberExpression: VisitNode<
 
   const chainedMembers: string[] = [];
   let continueTraversal = true;
-  traverse(path.node, memberExpressionInnerVisitor, path.scope, {
+  path.traverse(memberExpressionInnerVisitor, {
     chainedMembers,
     continueTraversal,
   });
