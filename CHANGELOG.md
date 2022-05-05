@@ -1,5 +1,12 @@
 # babel-plugin-react-no-hook-dependency
 
+## 0.0.3
+
+### Patch Changes
+
+- b2f04fb: persist credentials so changeset pr will trigger actions
+- 441fcfa: add release script
+
 ## 0.0.2
 
 ### Patch Changes
