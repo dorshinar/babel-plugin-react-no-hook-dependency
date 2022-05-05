@@ -1,6 +1,7 @@
 import { assert, describe, test } from "vitest";
 import { addHooksDeps } from "../src/add-hooks-deps";
-import babel, { TransformOptions } from "@babel/core";
+import type { TransformOptions } from "@babel/core";
+import babel from "@babel/core";
 
 type NormalizedString = string & { __normalized: true };
 
