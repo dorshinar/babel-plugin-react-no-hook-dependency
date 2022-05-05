@@ -25,7 +25,7 @@
     "format": "prettier . --check",
     "format:write": "prettier . --write",
     "lint": "eslint .",
-    "release": "build && changeset publish"
+    "release": "npm run build && changeset publish"
   },
   "devDependencies": {
     "@babel/core": "^7.17.10",
