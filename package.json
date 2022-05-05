@@ -24,7 +24,8 @@
     "coverage": "vitest run --coverage",
     "format": "prettier . --check",
     "format:write": "prettier . --write",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "release": "build && changeset publish"
   },
   "devDependencies": {
     "@babel/core": "^7.17.10",
