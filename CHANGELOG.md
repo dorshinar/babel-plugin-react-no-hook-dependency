@@ -1,5 +1,11 @@
 # babel-plugin-react-no-hook-dependency
 
+## 0.0.4
+
+### Patch Changes
+
+- 30730eb: fix build script
+
 ## 0.0.3
 
 ### Patch Changes
