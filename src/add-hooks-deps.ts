@@ -1,6 +1,8 @@
-import { NodePath, TraverseOptions, Visitor } from "@babel/traverse";
-import * as types from "@babel/types";
-import { Identifier } from "@babel/types";
+import type { NodePath, TraverseOptions, Visitor } from "@babel/traverse";
+import type * as types from "@babel/types";
+import type { Identifier } from "@babel/types";
+
+type Types = typeof types;
 
 const relevantCallees = new Set(["useMemo", "useCallback", "useEffect"]);
 const disallowedIdentifierParents = new Set([
@@ -8,7 +10,7 @@ const disallowedIdentifierParents = new Set([
   "MemberExpression",
 ]);
 
-export function addHooksDeps({ types: t }: { types: typeof types }): {
+export function addHooksDeps({ types: t }: { types: Types }): {
   visitor: Visitor;
 } {
   return {
@@ -68,10 +70,12 @@ const innerMostCallExpressionVisitor: Visitor<{ chainedMembers: string[] }> = {
   },
 };
 
-const callExpressionVisitor: Visitor<{
+type CallExpressionVisitorState = {
   chainedMembers: string[];
   innerMostCallExpression: NodePath<types.CallExpression> | undefined;
-}> = {
+};
+
+const callExpressionVisitor: Visitor<CallExpressionVisitorState> = {
   Identifier: function (path, state) {
     // When we are not dealing with nested calls we should chain the identifiers found
     state.chainedMembers.push(path.node.name);
@@ -86,7 +90,7 @@ const hookInvocationVisitor: Visitor<{
   names: Set<string>;
   callee: string;
   variablesInitializedInScope: Set<string>;
-  t: typeof types;
+  t: Types;
 }> = {
   Identifier: function (
     path,
@@ -137,10 +141,10 @@ const hookInvocationVisitor: Visitor<{
     }
   },
   CallExpression: (path, { names, variablesInitializedInScope, t }) => {
-    const state: {
-      chainedMembers: string[];
-      innerMostCallExpression: NodePath<types.CallExpression> | undefined;
-    } = { chainedMembers: [], innerMostCallExpression: undefined };
+    const state: CallExpressionVisitorState = {
+      chainedMembers: [],
+      innerMostCallExpression: undefined,
+    };
 
     path.traverse(callExpressionVisitor, state);
 
@@ -177,7 +181,7 @@ const hookInvocationVisitor: Visitor<{
 function getStringLiteralsFromNames(
   names: Set<string>,
   scopeBindings: Set<string>,
-  t: typeof types
+  t: Types
 ) {
   const stringLiterals: Identifier[] = [];
   for (const name of names) {
