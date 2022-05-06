@@ -1,5 +1,11 @@
 # babel-plugin-react-no-hook-dependency
 
+## 0.0.6
+
+### Patch Changes
+
+- d8d8473: add support for optional chaining
+
 ## 0.0.5
 
 ### Patch Changes
