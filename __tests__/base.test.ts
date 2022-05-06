@@ -449,6 +449,31 @@ const generalTests: Test[] = [
         return <></>;
       }`,
   },
+  {
+    title: "undefined as deps array removed as argument",
+    input: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let b = () => {};
+
+          let a = b(state.foo.bar().baz.qux().one.two.three());
+          return state;
+        }, undefined);
+        return <></>;
+      }`,
+    output: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let b = () => {};
+
+          let a = b(state.foo.bar().baz.qux().one.two.three());
+          return state;
+        });
+        return <></>;
+      }`,
+  },
 ];
 const useMemoTests: Test[] = [
   {

@@ -58,6 +58,32 @@ function App() {
 }
 ```
 
+### Using a hook with no deps array
+
+#### In
+
+```jsx
+function App() {
+  const [state, setState] = useState(0);
+  const toDisplay = useMemo(() => {
+    return state;
+  }, undefined);
+  return <></>;
+}
+```
+
+#### Out
+
+```jsx
+function App() {
+  const [state, setState] = useState(0);
+  const toDisplay = useMemo(() => {
+    return state;
+  });
+  return <></>;
+}
+```
+
 ## Install
 
 Using NPM:

@@ -8,7 +8,6 @@ export default defineConfig({
   plugins: [
     react(),
     babel({
-      // presets: ["@babel/preset-env"],
       sourceType: "module",
       plugins: [addHooksDeps],
     }),

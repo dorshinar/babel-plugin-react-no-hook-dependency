@@ -4,6 +4,8 @@ import "./App.css";
 
 function App() {
   const [count, setCount] = useState(0);
+  const [stateThatShouldTriggerEffect, setStateThatShouldTriggerEffect] =
+    useState(0);
 
   useEffect(() => {
     console.log("🚀 ~ count", count);
@@ -17,6 +19,14 @@ function App() {
         <p>
           <button type="button" onClick={() => setCount((count) => count + 1)}>
             count is: {count}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              setStateThatShouldTriggerEffect((count) => count + 1)
+            }
+          >
+            stateThatShouldTriggerEffect is: {stateThatShouldTriggerEffect}
           </button>
         </p>
         <p>
