@@ -450,7 +450,7 @@ const generalTests: Test[] = [
       }`,
   },
   {
-    title: "undefined as deps array is left untouched",
+    title: "undefined as deps array removed as argument",
     input: normalizeIndent`
       function App() {
         const [state, setState] = useState(0);
@@ -470,7 +470,7 @@ const generalTests: Test[] = [
 
           let a = b(state.foo.bar().baz.qux().one.two.three());
           return state;
-        }, undefined);
+        });
         return <></>;
       }`,
   },

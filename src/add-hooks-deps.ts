@@ -1,6 +1,5 @@
-import type { NodePath, TraverseOptions, Visitor } from "@babel/traverse";
 import type * as types from "@babel/types";
-import type { Identifier } from "@babel/types";
+import type { NodePath, TraverseOptions, Visitor } from "@babel/traverse";
 
 type Types = typeof types;
 
@@ -16,35 +15,48 @@ export function addHooksDeps({ types: t }: { types: Types }): {
   return {
     visitor: {
       CallExpression: function (path) {
-        const callee = (path.node.callee as unknown as types.Identifier).name;
-
-        if (isRelevantCallee(path)) {
-          // If the number of arguments is greater than 1, it means a deps array was manually added.
-          // We don't want to override it.
-          if (hookHasDeps(path)) {
-            return;
-          }
-
-          const names = new Set<string>();
-          const variablesInitializedInScope = new Set<string>();
-
-          const scopeBindings = new Set(Object.keys(path.scope.bindings));
-
-          path.traverse(hookInvocationVisitor, {
-            names,
-            callee,
-            variablesInitializedInScope,
-            t,
-          });
-
-          const stringLiterals: Identifier[] = getStringLiteralsFromNames(
-            names,
-            scopeBindings,
-            t
-          );
-          path.node.arguments.push(t.arrayExpression(stringLiterals));
-          path.skip();
+        if (!isIdentifier(path.node.callee, t)) {
+          return;
         }
+
+        if (!isRelevantCallee(path, t)) {
+          return;
+        }
+
+        // If the hook contains a deps array we want to leave it intact.
+        if (hookHasDeps(path, t)) {
+          return;
+        }
+
+        // If the hook has `undefined` for the deps array, we remove it.
+        // This is the way to create hooks without dependencies.
+        if (hookHasUndefinedDeps(path, t)) {
+          path.node.arguments.pop();
+          path.skip();
+          return;
+        }
+
+        // The names set is a list of all variables and properties accessed in the hook.
+        // If a property of an object is accessed, they will appear as `foo.bar` in the array.
+        const names = new Set<string>();
+
+        // The scope bindings contains all the variables bound to a value in the scope of the hook call.
+        // We need that to make sure we only add variables declared in the component to the deps array.
+        const scopeBindings = new Set(Object.keys(path.scope.bindings));
+
+        path.traverse(hookInvocationVisitor, {
+          names,
+          callee: path.node.callee.name,
+          t,
+        });
+
+        const stringLiterals: types.Identifier[] = getStringLiteralsFromNames(
+          names,
+          scopeBindings,
+          t
+        );
+        path.node.arguments.push(t.arrayExpression(stringLiterals));
+        path.skip();
       },
     },
   };
@@ -89,20 +101,11 @@ const callExpressionVisitor: Visitor<CallExpressionVisitorState> = {
 const hookInvocationVisitor: Visitor<{
   names: Set<string>;
   callee: string;
-  variablesInitializedInScope: Set<string>;
   t: Types;
 }> = {
-  Identifier: function (
-    path,
-    { names, callee, variablesInitializedInScope, t }
-  ) {
+  Identifier: function (path, { names, callee, t }) {
     // We skip certain parent types because in this visitor we only care about "pure" identifiers.
     if (disallowedIdentifierParents.has(path.parent.type)) {
-      return;
-    }
-
-    // We never want to add a local variable to the deps array.
-    if (variablesInitializedInScope.has(path.node.name)) {
       return;
     }
 
@@ -140,7 +143,7 @@ const hookInvocationVisitor: Visitor<{
       names.add(chainedMembers.join("."));
     }
   },
-  CallExpression: (path, { names, variablesInitializedInScope, t }) => {
+  CallExpression: (path, { names, t }) => {
     const state: CallExpressionVisitorState = {
       chainedMembers: [],
       innerMostCallExpression: undefined,
@@ -162,18 +165,7 @@ const hookInvocationVisitor: Visitor<{
     if (chainedMembers.length) {
       // The last member is the invoked function, we always want to remove it
       chainedMembers.pop();
-
-      if (variablesInitializedInScope.has(chainedMembers[0])) {
-        return;
-      }
-
       names.add(chainedMembers.join("."));
-    }
-  },
-  // We ignore variables that are declared inside the hook
-  VariableDeclarator: (path, { variablesInitializedInScope, t }) => {
-    if (t.isIdentifier(path.node.id)) {
-      variablesInitializedInScope.add(path.node.id.name);
     }
   },
 };
@@ -183,7 +175,7 @@ function getStringLiteralsFromNames(
   scopeBindings: Set<string>,
   t: Types
 ) {
-  const stringLiterals: Identifier[] = [];
+  const stringLiterals: types.Identifier[] = [];
   for (const name of names) {
     // Get first identifier (before first ".") to make sure it is declared in the component scope.
     const match = name.match(/[^.]+/);
@@ -194,11 +186,53 @@ function getStringLiteralsFromNames(
   return stringLiterals;
 }
 
-function isRelevantCallee(path: NodePath<types.CallExpression>): boolean {
-  const callee = (path.node.callee as unknown as types.Identifier).name;
-  return relevantCallees.has(callee);
+function isRelevantCallee(
+  path: NodePath<types.CallExpression>,
+  t: Types
+): boolean {
+  if (isIdentifier(path.node.callee, t)) {
+    return relevantCallees.has(path.node.callee.name);
+  }
+
+  return false;
 }
 
-function hookHasDeps(path: NodePath<types.CallExpression>): boolean {
-  return path.node.arguments.length > 1;
+function hookHasDeps(path: NodePath<types.CallExpression>, t: Types): boolean {
+  if (path.node.arguments.length < 2) {
+    return false;
+  }
+
+  const depsArray = path.node.arguments[1];
+  return isArrayNode(depsArray, t);
+}
+
+function hookHasUndefinedDeps(
+  path: NodePath<types.CallExpression>,
+  t: Types
+): boolean {
+  if (path.node.arguments.length < 2) {
+    return false;
+  }
+
+  const depsArray = path.node.arguments[1];
+  return isUndefined(depsArray, t);
+}
+
+function isUndefined(node: types.Node, t: Types): boolean {
+  if (!isIdentifier(node, t)) {
+    return false;
+  }
+
+  return node.name === "undefined";
+}
+
+function isIdentifier(node: types.Node, t: Types): node is types.Identifier {
+  return t.isIdentifier(node);
+}
+
+function isArrayNode(
+  node: types.Node,
+  t: Types
+): node is types.ArrayExpression {
+  return t.isArrayExpression(node);
 }
