@@ -449,6 +449,31 @@ const generalTests: Test[] = [
         return <></>;
       }`,
   },
+  {
+    title: "undefined as deps array is left untouched",
+    input: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let b = () => {};
+
+          let a = b(state.foo.bar().baz.qux().one.two.three());
+          return state;
+        }, undefined);
+        return <></>;
+      }`,
+    output: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let b = () => {};
+
+          let a = b(state.foo.bar().baz.qux().one.two.three());
+          return state;
+        }, undefined);
+        return <></>;
+      }`,
+  },
 ];
 const useMemoTests: Test[] = [
   {
