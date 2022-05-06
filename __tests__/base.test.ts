@@ -474,6 +474,177 @@ const generalTests: Test[] = [
         return <></>;
       }`,
   },
+  {
+    title: "property of variable with optional chaining",
+    input: normalizeIndent`
+      function App() {
+          const [state, setState] = useState(0);
+          const toDisplay = useMemo(() => {
+              let a = state?.foo;
+              return a;
+          });
+          return <></>
+      }`,
+    output: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let a = state?.foo;
+          return a;
+        }, [state?.foo]);
+        return <></>;
+      }`,
+  },
+  {
+    title: "object and property of same object with optional chaining",
+    input: normalizeIndent`
+      function App() {
+          const [state, setState] = useState(0);
+          const toDisplay = useMemo(() => {
+              let a = state?.foo;
+              return state;
+          });
+          return <></>
+      }`,
+    output: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let a = state?.foo;
+          return state;
+        }, [state?.foo, state]);
+        return <></>;
+      }`,
+  },
+  {
+    title: "nested properties with optional chaining",
+    input: normalizeIndent`
+      function App() {
+          const [state, setState] = useState(0);
+          const toDisplay = useMemo(() => {
+              let a = state?.foo?.bar?.baz;
+              return a;
+          });
+          return <></>
+      }`,
+    output: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let a = state?.foo?.bar?.baz;
+          return a;
+        }, [state?.foo?.bar?.baz]);
+        return <></>;
+      }`,
+  },
+  {
+    title: "nested properties with optional chaining and not optional root",
+    input: normalizeIndent`
+      function App() {
+          const [state, setState] = useState(0);
+          const toDisplay = useMemo(() => {
+              let a = state.foo?.bar?.baz;
+              return a;
+          });
+          return <></>
+      }`,
+    output: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let a = state.foo?.bar?.baz;
+          return a;
+        }, [state.foo?.bar?.baz]);
+        return <></>;
+      }`,
+  },
+  {
+    title:
+      "a mix of nested properties with optional chaining and non-optional chaining",
+    input: normalizeIndent`
+      function App() {
+          const [state, setState] = useState(0);
+          const toDisplay = useMemo(() => {
+              let a = state.foo?.bar.baz?.qux;
+              return a;
+          });
+          return <></>
+      }`,
+    output: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let a = state.foo?.bar.baz?.qux;
+          return a;
+        }, [state.foo?.bar.baz?.qux]);
+        return <></>;
+      }`,
+  },
+  {
+    title: "function called on variable with property access optional chaining",
+    input: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let a = state?.foo();
+          return a;
+        });
+        return <></>;
+      }`,
+    output: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let a = state?.foo();
+          return a;
+        }, [state]);
+        return <></>;
+      }`,
+  },
+  {
+    title:
+      "property accessed on function called on variable with optional chaining",
+    input: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let a = state.foo()?.bar;
+          return state;
+        });
+        return <></>;
+      }`,
+    output: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let a = state.foo()?.bar;
+          return state;
+        }, [state]);
+        return <></>;
+      }`,
+  },
+  {
+    title:
+      "chained function calls and properties access with optional chaining",
+    input: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let a = state.foo?.bar()?.baz.qux().one.two?.three();
+          return state;
+        });
+        return <></>;
+      }`,
+    output: normalizeIndent`
+      function App() {
+        const [state, setState] = useState(0);
+        const toDisplay = useMemo(() => {
+          let a = state.foo?.bar()?.baz.qux().one.two?.three();
+          return state;
+        }, [state.foo, state]);
+        return <></>;
+      }`,
+  },
 ];
 const useMemoTests: Test[] = [
   {
