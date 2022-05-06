@@ -1,5 +1,5 @@
 import type * as types from "@babel/types";
-import type { NodePath, TraverseOptions, Visitor } from "@babel/traverse";
+import type { NodePath, Visitor } from "@babel/traverse";
 
 type Types = typeof types;
 
@@ -7,6 +7,7 @@ const relevantCallees = new Set(["useMemo", "useCallback", "useEffect"]);
 const disallowedIdentifierParents = new Set([
   "VariableDeclarator",
   "MemberExpression",
+  "OptionalMemberExpression",
 ]);
 
 export function addHooksDeps({ types: t }: { types: Types }): {
@@ -19,7 +20,7 @@ export function addHooksDeps({ types: t }: { types: Types }): {
           return;
         }
 
-        if (!isRelevantCallee(path, t)) {
+        if (!isRelevantCallee(path.node.callee)) {
           return;
         }
 
@@ -48,6 +49,7 @@ export function addHooksDeps({ types: t }: { types: Types }): {
           names,
           callee: path.node.callee.name,
           t,
+          chainedMembers: "",
         });
 
         const stringLiterals: types.Identifier[] = getStringLiteralsFromNames(
@@ -62,29 +64,119 @@ export function addHooksDeps({ types: t }: { types: Types }): {
   };
 }
 
-const memberExpressionInnerVisitor: TraverseOptions<{
-  continueTraversal: boolean;
-  chainedMembers: string[];
-}> = {
-  Identifier: function (path) {
-    if (this.continueTraversal) {
-      this.chainedMembers.push(path.node.name);
+type HookInvocationVisitorState = {
+  names: Set<string>;
+  callee: string;
+  t: Types;
+  chainedMembers: string;
+};
+
+const hookInvocationVisitor: Visitor<HookInvocationVisitorState> = {
+  Identifier: function (path, { names, callee, t }) {
+    // We skip certain parent types because in this visitor we only care about "pure" identifiers.
+    if (disallowedIdentifierParents.has(path.parent.type)) {
+      return;
+    }
+
+    if (t.isIdentifier(path.node) && path.node.name !== callee) {
+      names.add(path.node.name);
     }
   },
-  CallExpression: function () {
-    this.continueTraversal = false;
+  MemberExpression: memberExpressionExecutor,
+  OptionalMemberExpression: (path, state) => {
+    const joinValue = path.node.optional ? "?." : ".";
+
+    memberExpressionExecutor(path, state, joinValue);
+  },
+  CallExpression: callExpressionExecutor,
+  OptionalCallExpression: (path, state) => {
+    const joinValue = path.node.optional ? "?." : ".";
+
+    callExpressionExecutor(path, state, joinValue);
   },
 };
 
-const innerMostCallExpressionVisitor: Visitor<{ chainedMembers: string[] }> = {
-  Identifier: function (path, { chainedMembers }) {
-    chainedMembers.push(path.node.name);
-  },
-};
+function memberExpressionExecutor(
+  path: NodePath<types.OptionalMemberExpression | types.MemberExpression>,
+  state: HookInvocationVisitorState,
+  joinValue = "."
+) {
+  const innerState: MemberExpressionVisitorState = {
+    chainedMembers: "",
+    t: state.t,
+  };
+
+  path.skip();
+
+  if (
+    isCallExpression(path.parent, state.t) &&
+    !path.parent.arguments.includes(path.node)
+  ) {
+    return;
+  }
+
+  if (
+    isIdentifier(path.node.object, state.t) &&
+    isIdentifier(path.node.property, state.t)
+  ) {
+    state.names.add(
+      [path.node.object.name, path.node.property.name].join(joinValue)
+    );
+    return;
+  }
+
+  path.traverse(memberExpressionVisitor, innerState);
+
+  const { chainedMembers } = innerState;
+
+  let propertyName = "";
+  if (isIdentifier(path.node.property, state.t)) {
+    propertyName = path.node.property.name;
+  }
+
+  state.chainedMembers = [chainedMembers, propertyName].join(joinValue);
+
+  state.names.add(state.chainedMembers);
+}
+
+function callExpressionExecutor(
+  path: NodePath<types.OptionalCallExpression | types.CallExpression>,
+  { names, t }: HookInvocationVisitorState,
+  joinValue = "."
+) {
+  const state: CallExpressionVisitorState = {
+    chainedMembers: [],
+    innerMostCallExpression: undefined,
+  };
+
+  path.traverse(callExpressionVisitor, state);
+
+  let chainedMembers = state.chainedMembers;
+  const innerMostCallExpression = state.innerMostCallExpression;
+
+  // If we have found an inner Call Expression, we traverse it to find all identifiers.
+  if (
+    innerMostCallExpression &&
+    isCallExpression(innerMostCallExpression.node, t)
+  ) {
+    chainedMembers = [];
+    innerMostCallExpression.traverse(innerMostCallExpressionVisitor, {
+      chainedMembers,
+    });
+  }
+
+  if (chainedMembers.length) {
+    // The last member is the invoked function, we always want to remove it
+    chainedMembers.pop();
+    names.add(chainedMembers.join(joinValue));
+  }
+}
 
 type CallExpressionVisitorState = {
   chainedMembers: string[];
-  innerMostCallExpression: NodePath<types.CallExpression> | undefined;
+  innerMostCallExpression:
+    | NodePath<types.CallExpression | types.OptionalCallExpression>
+    | undefined;
 };
 
 const callExpressionVisitor: Visitor<CallExpressionVisitorState> = {
@@ -96,77 +188,89 @@ const callExpressionVisitor: Visitor<CallExpressionVisitorState> = {
     // We store the inner most Call Expression so we can traverse it later
     state.innerMostCallExpression = path;
   },
+  OptionalCallExpression: function (path, state) {
+    // We store the inner most Call Expression so we can traverse it later
+    state.innerMostCallExpression = path;
+  },
 };
 
-const hookInvocationVisitor: Visitor<{
-  names: Set<string>;
-  callee: string;
+const innerMostCallExpressionVisitor: Visitor<{ chainedMembers: string[] }> = {
+  Identifier: function (path, { chainedMembers }) {
+    chainedMembers.push(path.node.name);
+  },
+};
+
+type MemberExpressionVisitorState = {
+  chainedMembers: string;
   t: Types;
-}> = {
-  Identifier: function (path, { names, callee, t }) {
-    // We skip certain parent types because in this visitor we only care about "pure" identifiers.
-    if (disallowedIdentifierParents.has(path.parent.type)) {
+};
+
+const memberExpressionVisitor: Visitor<MemberExpressionVisitorState> = {
+  MemberExpression: (path, state) => {
+    const innerState: MemberExpressionVisitorState = {
+      chainedMembers: "",
+      t: state.t,
+    };
+
+    if (isCallExpression(path.parent, state.t)) {
       return;
     }
 
-    if (t.isIdentifier(path.node) && path.node.name !== callee) {
-      names.add(path.node.name);
-    }
-  },
-  MemberExpression: (path, { names }) => {
-    // We don't need to traverse a "MemberExpression" nested inside another "MemberExpression"
-    if (path.parent.type === "MemberExpression") {
-      return;
-    }
+    path.skip();
 
-    // If the parent of this node is a "CallExpression", we validate path is an argument to the function
     if (
-      path.parent.type === "CallExpression" &&
-      !path.parent.arguments.includes(path.node)
+      isIdentifier(path.node.object, state.t) &&
+      isIdentifier(path.node.property, state.t)
     ) {
+      state.chainedMembers = [
+        path.node.object.name,
+        path.node.property.name,
+      ].join(".");
       return;
     }
 
-    let chainedMembers: string[] = [];
-    let continueTraversal = true;
+    path.traverse(memberExpressionVisitor, innerState);
 
-    const state = {
-      chainedMembers,
-      continueTraversal,
-    };
-    path.traverse(memberExpressionInnerVisitor, state);
+    const { chainedMembers } = innerState;
 
-    continueTraversal = state.continueTraversal;
-    chainedMembers = state.chainedMembers;
-
-    if (chainedMembers.length) {
-      names.add(chainedMembers.join("."));
+    let propertyName = "";
+    if (isIdentifier(path.node.property, state.t)) {
+      propertyName = path.node.property.name;
     }
+
+    state.chainedMembers = [chainedMembers, propertyName].join(".");
   },
-  CallExpression: (path, { names, t }) => {
-    const state: CallExpressionVisitorState = {
-      chainedMembers: [],
-      innerMostCallExpression: undefined,
+  OptionalMemberExpression: (path, state) => {
+    const joinValue = path.node.optional ? "?." : ".";
+
+    const innerState: MemberExpressionVisitorState = {
+      chainedMembers: "",
+      t: state.t,
     };
 
-    path.traverse(callExpressionVisitor, state);
+    path.skip();
 
-    let chainedMembers = state.chainedMembers;
-    const innerMostCallExpression = state.innerMostCallExpression;
-
-    // If we have found an inner Call Expression, we traverse it to find all identifiers.
-    if (t.isCallExpression(innerMostCallExpression)) {
-      chainedMembers = [];
-      innerMostCallExpression.traverse(innerMostCallExpressionVisitor, {
-        chainedMembers,
-      });
+    if (
+      isIdentifier(path.node.object, state.t) &&
+      isIdentifier(path.node.property, state.t)
+    ) {
+      state.chainedMembers = [
+        path.node.object.name,
+        path.node.property.name,
+      ].join(joinValue);
+      return;
     }
 
-    if (chainedMembers.length) {
-      // The last member is the invoked function, we always want to remove it
-      chainedMembers.pop();
-      names.add(chainedMembers.join("."));
+    path.traverse(memberExpressionVisitor, innerState);
+
+    const { chainedMembers } = innerState;
+
+    let propertyName = "";
+    if (isIdentifier(path.node.property, state.t)) {
+      propertyName = path.node.property.name;
     }
+
+    state.chainedMembers = [chainedMembers, propertyName].join(joinValue);
   },
 };
 
@@ -178,7 +282,7 @@ function getStringLiteralsFromNames(
   const stringLiterals: types.Identifier[] = [];
   for (const name of names) {
     // Get first identifier (before first ".") to make sure it is declared in the component scope.
-    const match = name.match(/[^.]+/);
+    const match = name.match(/[^?.]+/);
     if (match?.[0] && scopeBindings.has(match?.[0])) {
       stringLiterals.push(t.identifier(name));
     }
@@ -186,15 +290,8 @@ function getStringLiteralsFromNames(
   return stringLiterals;
 }
 
-function isRelevantCallee(
-  path: NodePath<types.CallExpression>,
-  t: Types
-): boolean {
-  if (isIdentifier(path.node.callee, t)) {
-    return relevantCallees.has(path.node.callee.name);
-  }
-
-  return false;
+function isRelevantCallee(callee: types.Identifier): boolean {
+  return relevantCallees.has(callee.name);
 }
 
 function hookHasDeps(path: NodePath<types.CallExpression>, t: Types): boolean {
@@ -235,4 +332,11 @@ function isArrayNode(
   t: Types
 ): node is types.ArrayExpression {
   return t.isArrayExpression(node);
+}
+
+function isCallExpression(
+  node: types.Node,
+  t: Types
+): node is types.CallExpression | types.OptionalCallExpression {
+  return t.isCallExpression(node) || t.isOptionalCallExpression(node);
 }
