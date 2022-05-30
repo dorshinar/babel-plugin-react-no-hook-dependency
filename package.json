@@ -31,7 +31,7 @@
   "devDependencies": {
     "@babel/core": "^7.18.2",
     "@babel/generator": "^7.18.2",
-    "@babel/parser": "^7.18.3",
+    "@babel/parser": "^7.18.4",
     "@babel/plugin-syntax-jsx": "^7.17.12",
     "@changesets/cli": "^2.22.0",
     "@types/babel__core": "^7.1.19",
