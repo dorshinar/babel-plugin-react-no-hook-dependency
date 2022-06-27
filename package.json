@@ -51,6 +51,6 @@
   },
   "dependencies": {
     "@babel/traverse": "^7.18.5",
-    "@babel/types": "^7.18.4"
+    "@babel/types": "^7.18.6"
   }
 }
