@@ -38,7 +38,7 @@
     "@types/babel__generator": "^7.6.4",
     "@types/babel__parser": "^7.1.1",
     "@types/babel__traverse": "^7.17.1",
-    "@types/node": "^18.0.0",
+    "@types/node": "^18.0.1",
     "@typescript-eslint/eslint-plugin": "^5.30.4",
     "@typescript-eslint/parser": "^5.30.4",
     "c8": "^7.11.3",
