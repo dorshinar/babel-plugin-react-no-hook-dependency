@@ -39,7 +39,7 @@
     "@types/babel__parser": "^7.1.1",
     "@types/babel__traverse": "^7.18.1",
     "@types/node": "^18.7.14",
-    "@typescript-eslint/eslint-plugin": "^5.35.1",
+    "@typescript-eslint/eslint-plugin": "^5.36.1",
     "@typescript-eslint/parser": "^5.36.1",
     "c8": "^7.12.0",
     "eslint": "^8.23.0",
