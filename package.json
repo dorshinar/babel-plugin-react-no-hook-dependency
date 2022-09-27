@@ -50,7 +50,7 @@
     "vitest": "^0.23.4"
   },
   "dependencies": {
-    "@babel/traverse": "^7.19.0",
+    "@babel/traverse": "^7.19.3",
     "@babel/types": "^7.18.9"
   }
 }
