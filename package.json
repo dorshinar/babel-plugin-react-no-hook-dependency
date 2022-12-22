@@ -37,7 +37,7 @@
     "@types/babel__core": "^7.1.19",
     "@types/babel__generator": "^7.6.4",
     "@types/babel__parser": "^7.1.1",
-    "@types/babel__traverse": "^7.18.2",
+    "@types/babel__traverse": "^7.18.3",
     "@types/node": "^18.11.17",
     "@typescript-eslint/eslint-plugin": "^5.47.0",
     "@typescript-eslint/parser": "^5.47.0",
@@ -50,7 +50,7 @@
     "vitest": "^0.26.2"
   },
   "dependencies": {
-    "@babel/traverse": "^7.19.3",
+    "@babel/traverse": "^7.20.8",
     "@babel/types": "^7.20.5"
   }
 }
