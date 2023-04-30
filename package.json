@@ -29,12 +29,12 @@
     "release": "npm run build && changeset publish"
   },
   "devDependencies": {
-    "@babel/core": "^7.19.3",
+    "@babel/core": "^7.21.5",
     "@babel/generator": "^7.19.3",
     "@babel/parser": "^7.21.4",
     "@babel/plugin-syntax-jsx": "^7.21.4",
     "@changesets/cli": "^2.26.1",
-    "@types/babel__core": "^7.1.19",
+    "@types/babel__core": "^7.20.0",
     "@types/babel__generator": "^7.6.4",
     "@types/babel__parser": "^7.1.1",
     "@types/babel__traverse": "^7.18.2",
