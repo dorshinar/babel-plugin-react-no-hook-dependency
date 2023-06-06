@@ -47,7 +47,7 @@
     "prettier": "^2.8.8",
     "typescript": "^5.0.4",
     "vite": "^4.3.9",
-    "vitest": "^0.31.1"
+    "vitest": "^0.32.0"
   },
   "dependencies": {
     "@babel/traverse": "^7.19.3",
