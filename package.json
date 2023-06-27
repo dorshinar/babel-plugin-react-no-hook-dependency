@@ -33,7 +33,7 @@
     "@babel/generator": "^7.19.3",
     "@babel/parser": "^7.22.5",
     "@babel/plugin-syntax-jsx": "^7.22.5",
-    "@changesets/cli": "^2.26.1",
+    "@changesets/cli": "^2.26.2",
     "@types/babel__core": "^7.1.19",
     "@types/babel__generator": "^7.6.4",
     "@types/babel__parser": "^7.1.1",
